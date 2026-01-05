@@ -263,6 +263,25 @@ class AndroidPurchaseHelper : PurchaseHelper {
             return
         }
 
+        // Double-check native SDK availability at runtime
+        // This guards against race conditions where our flag is set but native SDK isn't ready
+        // Also handles process death scenarios where static singletons are lost
+        val nativeSdkReady = remember {
+            try {
+                NativePurchases.sharedInstance
+                true
+            } catch (e: Exception) {
+                // Catches UninitializedPropertyAccessException, IllegalStateException, etc.
+                println("PurchaseHelper: Native SDK not ready (${e.javaClass.simpleName}), cannot show CustomerCenter")
+                false
+            }
+        }
+
+        if (!nativeSdkReady) {
+            LaunchedEffect(Unit) { dismissRequest() }
+            return
+        }
+
         val purchaseStateManager: PurchaseStateManager = getKoin().get()
         val customerCenterListener: CustomerCenterListener = getKoin().get()
 
