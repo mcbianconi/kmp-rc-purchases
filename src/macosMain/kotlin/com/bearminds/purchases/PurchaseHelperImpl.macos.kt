@@ -13,6 +13,8 @@ class MacosPurchaseHelper : PurchaseHelper {
 
     override val isInitialized: Boolean = true  // Always initialized on macOS (no SDK needed)
 
+    override val isCustomerCenterSupported: Boolean = false  // RevenueCat doesn't support macOS
+
     override val cachedOfferings: PurchaseOfferings? = null
 
     override suspend fun initialize(apiKey: String) {
@@ -75,6 +77,6 @@ class MacosPurchaseHelper : PurchaseHelper {
 
     @Composable
     override fun CustomerCenter(modifier: Modifier, dismissRequest: () -> Unit) {
-        println("PurchaseHelper: macOS platform - CustomerCenter not supported")
+        // Not supported on macOS - CustomerCenterScreenDestination handles showing unavailable screen
     }
 }

@@ -24,6 +24,8 @@ class IOSPurchaseHelper : PurchaseHelper {
     override val isInitialized: Boolean
         get() = _isInitialized
 
+    override val isCustomerCenterSupported: Boolean = true
+
     override val cachedOfferings: PurchaseOfferings?
         get() = _cachedOfferings
 

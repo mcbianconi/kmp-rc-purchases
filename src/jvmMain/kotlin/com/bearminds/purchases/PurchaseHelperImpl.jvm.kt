@@ -13,6 +13,8 @@ class JVMPurchaseHelper : PurchaseHelper {
 
     override val isInitialized: Boolean = true  // Always initialized on JVM (no SDK needed)
 
+    override val isCustomerCenterSupported: Boolean = false  // RevenueCat doesn't support desktop
+
     override val cachedOfferings: PurchaseOfferings? = null
 
     override suspend fun initialize(apiKey: String) {
@@ -74,7 +76,7 @@ class JVMPurchaseHelper : PurchaseHelper {
 
     @Composable
     override fun CustomerCenter(modifier: Modifier, dismissRequest: () -> Unit) {
-        println("PurchaseHelper: JVM platform - CustomerCenter not supported")
+        // Not supported on JVM - CustomerCenterScreenDestination handles showing unavailable screen
     }
 }
 

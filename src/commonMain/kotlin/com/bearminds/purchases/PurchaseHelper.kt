@@ -19,6 +19,13 @@ interface PurchaseHelper {
     val isInitialized: Boolean
 
     /**
+     * Whether the Customer Center is supported on this platform.
+     * - iOS/Android: true (RevenueCat provides native UI)
+     * - macOS/Desktop: false (RevenueCat doesn't support these platforms)
+     */
+    val isCustomerCenterSupported: Boolean
+
+    /**
      * Cached offerings, prefetched during initialization.
      * Use this to avoid loading delay when showing paywall.
      */
