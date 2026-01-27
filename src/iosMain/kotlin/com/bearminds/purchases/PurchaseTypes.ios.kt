@@ -85,10 +85,12 @@ internal class PurchasePackageWrapper(val delegate: Package) : PurchasePackage {
         }
     }
 
-    // Free trial detection - use freeTrial from subscriptionOptions
-    // This returns the free trial SubscriptionOption if available
+    // Free trial detection - check freeTrial option first, then defaultOffer's freePhase
+    // RevenueCat can expose free trials either as a separate "freeTrial" subscription option
+    // OR as part of the default offer's pricing phases (freePhase extension)
     private val freeTrialOption = product.subscriptionOptions?.freeTrial
     private val freePhase = freeTrialOption?.freePhase
+        ?: product.subscriptionOptions?.defaultOffer?.freePhase
 
     override val hasFreeTrial: Boolean = freePhase != null
 
