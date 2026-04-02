@@ -1,26 +1,31 @@
 @file:OptIn(ExperimentalWasmDsl::class)
 
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidKotlinMultiplatformLibrary)
-    alias(libs.plugins.androidLint)
+    alias(libs.plugins.androidLibrary)
+//    alias(libs.plugins.androidLint)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
 }
 
 kotlin {
+    // https://kotlinlang.org/docs/multiplatform/multiplatform-hierarchy.html#apply-the-default-hierarchy-template
+    // Required alongside manual dependsOn() calls (webMain) to avoid suppressing the default hierarchy.
+    applyDefaultHierarchyTemplate()
+
     jvmToolchain(21)
 
     jvm()
     js().browser()
     wasmJs().browser()
 
-    androidLibrary {
-        namespace = "com.bearminds.purchases"
-        compileSdk = 36
-        minSdk = 24
+    androidTarget {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_11)
+        }
     }
 
     sourceSets {
@@ -46,12 +51,7 @@ kotlin {
         iosArm64(),
         iosX64(),
         iosSimulatorArm64(),
-        macosArm64(),
-        macosX64(),
-        watchosArm64(),
-        watchosArm32(),
-        tvosArm64(),
-        tvosSimulatorArm64()
+        macosArm64()
     ).forEach {
         it.binaries.framework {
             baseName = xcfName
@@ -77,10 +77,10 @@ kotlin {
                 implementation(libs.koin.core)
 
                 // RevenueCat
-                implementation(libs.revenuecat.core)
-                implementation(libs.revenuecat.ui)
-                implementation(libs.revenuecat.either)
-                implementation(libs.revenuecat.result)
+                implementation(libs.purchases.core)
+                implementation(libs.purchases.ui)
+                implementation(libs.purchases.either)
+                implementation(libs.purchases.result)
             }
         }
 
@@ -98,23 +98,22 @@ kotlin {
             }
         }
 
-        // iOS source set - explicit dependency setup for proper hierarchy
-        val iosMain by creating {
-            dependsOn(commonMain.get())
-        }
-        val iosArm64Main by getting { dependsOn(iosMain) }
-        val iosX64Main by getting { dependsOn(iosMain) }
-        val iosSimulatorArm64Main by getting { dependsOn(iosMain) }
-
-        // macOS shares StoreKit with iOS - RevenueCat should work
-        val macosMain by creating {
-            dependsOn(commonMain.get())
-        }
-        val macosArm64Main by getting { dependsOn(macosMain) }
-        val macosX64Main by getting { dependsOn(macosMain) }
     }
 }
 
+
+android {
+    namespace = "com.bearminds.purchases"
+    compileSdk = 36
+
+    defaultConfig {
+        minSdk = 24
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+}
 
 // Exclude RevenueCat from Unsupported platforms configurations
 // NOTE: RevenueCat KMP only supports iOS and Android - macOS is excluded
@@ -122,21 +121,12 @@ afterEvaluate {
     configurations.matching {
         it.name.contains("jvm", ignoreCase = true) ||
                 it.name.contains("macos", ignoreCase = true) ||
-                it.name.contains("tvos", ignoreCase = true) ||
-                it.name.contains("watchos", ignoreCase = true) ||
                 it.name.contains("js", ignoreCase = true)
     }.configureEach {
         exclude(group = "com.revenuecat.purchases", module = "purchases-kmp-core")
         exclude(group = "com.revenuecat.purchases", module = "purchases-kmp-either")
         exclude(group = "com.revenuecat.purchases", module = "purchases-kmp-result")
         exclude(group = "com.revenuecat.purchases", module = "purchases-kmp-ui")
-    }
-
-    configurations.matching {
-        it.name.contains("tvos", ignoreCase = true) ||
-                it.name.contains("watchos", ignoreCase = true)
-    }.configureEach {
-        exclude(group = "org.jetbrains.compose.ui", module = "ui")
     }
 
     // Exclude Amazon Appstore SDK globally - we only use Google Play

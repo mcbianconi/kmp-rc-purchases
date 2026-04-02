@@ -3,9 +3,7 @@ package com.bearminds.purchases
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
-val purchasesApiKey = "purchasesApiKey"
-val entitlementsKey = "entitlementsKey"
-val offeringIdentifierKey = "offeringIdentifierKey"
+const val entitlementsKey = "entitlementsKey"
 
 /**
  * Helper interface for managing in-app purchases and subscriptions
