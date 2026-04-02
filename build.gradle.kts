@@ -103,7 +103,7 @@ kotlin {
 
 
 android {
-    namespace = "com.bearminds.purchases"
+    namespace = "com.mcbianconi.tattoo.purchases"
     compileSdk = 36
 
     defaultConfig {

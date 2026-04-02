@@ -1,95 +1,34 @@
 # Purchases Module
 
-A Kotlin Multiplatform abstraction layer for RevenueCat that enables seamless in-app purchase functionality across all supported platforms, including those where RevenueCat doesn't natively compile.
+A Kotlin Multiplatform abstraction layer for RevenueCat that enables in-app purchase functionality across all supported platforms, including those where RevenueCat doesn't natively compile.
 
 ## Why This Module Exists
 
 ### The Problem
 
-[RevenueCat's Kotlin Multiplatform SDK](https://www.revenuecat.com/docs/getting-started/installation/kotlin-multiplatform) only supports **Android** and **iOS** platforms. If you're building a Kotlin Multiplatform project that targets additional platforms like:
-
-- **JVM** (Desktop applications)
-- **JS** (Web applications)
-- **WASM** (WebAssembly)
-- **macOS**, **tvOS**, **watchOS** (Apple platforms beyond iOS)
-
-...your project will **fail to compile** when you try to use RevenueCat directly in common code. The RevenueCat SDK simply doesn't provide implementations for these platforms, causing build errors.
+[RevenueCat's Kotlin Multiplatform SDK](https://www.revenuecat.com/docs/getting-started/installation/kotlin-multiplatform) only supports **Android** and **iOS**. If your KMP project targets additional platforms like JVM, JS, WasmJS, or macOS, the project will **fail to compile** when RevenueCat is used in common code.
 
 ### The Solution
 
-This module provides a **platform-agnostic abstraction layer** that:
+This module provides a platform-agnostic abstraction layer that:
 
 1. **Wraps RevenueCat** on supported platforms (Android/iOS) with full functionality
 2. **Excludes RevenueCat dependencies** from unsupported platforms at build time
-3. **Provides no-op implementations** for unsupported platforms, allowing your code to compile and run everywhere
-4. **Hides RevenueCat types** from common code, keeping your business logic clean and platform-independent
+3. **Provides no-op implementations** for unsupported platforms, allowing the code to compile and run everywhere
+4. **Hides RevenueCat types** from common code, keeping business logic platform-independent
 
-## Why It's Good
+## Targets
 
-### Compilation Safety
+| Platform | Behavior |
+|----------|----------|
+| **Android** | Full RevenueCat integration |
+| **iOS** (arm64, x64, simulatorArm64) | Full RevenueCat integration |
+| **JVM** | No-op (compiles, returns errors/false) |
+| **JS** (browser) | No-op |
+| **WasmJS** (browser) | No-op |
+| **macOS** (arm64) | No-op |
 
-Your project compiles successfully for **all** target platforms, not just Android and iOS. The module automatically excludes RevenueCat from unsupported platforms using Gradle configuration:
-
-```kotlin
-// Exclude RevenueCat from Unsupported platforms configurations
-afterEvaluate {
-    configurations.matching {
-        it.name.contains("jvm", ignoreCase = true) ||
-        it.name.contains("macos", ignoreCase = true) ||
-        it.name.contains("tvos", ignoreCase = true) ||
-        it.name.contains("watchos", ignoreCase = true) ||
-        it.name.contains("js", ignoreCase = true)
-    }.configureEach {
-        exclude(group = "com.revenuecat.purchases", module = "purchases-kmp-core")
-        exclude(group = "com.revenuecat.purchases", module = "purchases-kmp-either")
-        exclude(group = "com.revenuecat.purchases", module = "purchases-kmp-result")
-    }
-}
-```
-
-### Clean Abstraction
-
-Common code never imports RevenueCat types directly. Instead, it uses platform-agnostic interfaces.
-
-### Platform-Specific Implementations
-
-- **Android/iOS**: Full RevenueCat integration with all features
-- **JVM/JS/WASM**: No-op implementations that gracefully handle unsupported platforms
-- **Other Apple platforms**: Stub implementations for compilation
-
-### Dependency Injection Ready
-
-The module integrates seamlessly with Koin via `expect/actual` pattern:
-
-```kotlin
-// commonMain
-expect val platformPurchaseModule: Module
-
-// androidMain/iosMain/jvmMain
-actual val platformPurchaseModule: Module = module {
-    single<PurchaseHelper> { PlatformPurchaseHelper() }
-    single { PurchaseStateManager(get(), CoroutineScope(...)) }
-    single<PaywallListener> { PaywallListenerImpl(get()) }
-}
-```
-
-## Why You Should Use It
-
-### Multi-Platform Projects
-
-If your Kotlin Multiplatform project targets more than just Android and iOS, this module is **essential**. Without it, you'll face compilation errors on unsupported platforms.
-
-### Clean Architecture
-
-The abstraction layer keeps your business logic completely platform-independent. Your ViewModels, repositories, and use cases can work with purchases without knowing about RevenueCat.
-
-### Future-Proof
-
-If RevenueCat adds support for new platforms in the future, you only need to update the platform-specific implementation in this module. Your common code remains unchanged.
-
-### Testing
-
-No-op implementations on unsupported platforms make it easy to test your purchase logic without requiring actual platform-specific purchase infrastructure.
+iOS and macOS also produce a static XCFramework (`purchasesKit`).
 
 ## Quick Start
 
@@ -118,16 +57,19 @@ class YourViewModel(
 ) {
     val isPro = purchaseStateManager.isPro
 
-    init {
-        viewModelScope.launch {
-            purchaseStateManager.purchaseEvents.collect { event ->
-                when (event) {
-                    PurchaseEvent.PurchaseSuccess -> { /* Handle success */ }
-                    is PurchaseEvent.Error -> { /* Handle error */ }
-                    // ...
-                }
+    suspend fun purchase(pkg: PurchasePackage) {
+        purchaseHelper.purchase(
+            packageToPurchase = pkg,
+            onSuccess = { transaction, customerInfo ->
+                purchaseStateManager.updateFromCustomerInfo(customerInfo)
+            },
+            onError = { error, cancelled ->
+                purchaseStateManager.emitEvent(
+                    if (cancelled) PurchaseEvent.PurchaseCancelled
+                    else PurchaseEvent.Error(error)
+                )
             }
-        }
+        )
     }
 }
 ```
@@ -138,55 +80,56 @@ class YourViewModel(
 
 | Component | Description |
 |-----------|-------------|
-| `PurchaseHelper` | Main interface for purchase operations (initialize, getOfferings, purchase, restore) |
-| `PurchaseStateManager` | Manages `isPro` state and emits `PurchaseEvent` flow |
-| `PaywallListener` | Handles RevenueCat paywall callbacks |
-
-### Purchase Events
-
-```kotlin
-sealed interface PurchaseEvent {
-    data object PurchaseSuccess
-    data object RestoreSuccess
-    data object PurchaseCancelled
-    data class Error(val error: PurchaseError)
-    data class RestoreFailed(val error: PurchaseError)
-}
-```
+| `PurchaseHelper` | Interface for purchase operations: initialize, getOfferings, purchase, restore, getCustomerInfo, hasActiveEntitlement. Also provides `@Composable` Paywall and CustomerCenter UI. |
+| `PurchaseStateManager` | Manages `isPro` state (`StateFlow<Boolean>`) and emits `PurchaseEvent` via `SharedFlow`. |
+| `PaywallListener` | Handles RevenueCat paywall callbacks (Android/iOS). |
+| `CustomerCenterListener` | Handles RevenueCat customer center callbacks (Android). |
 
 ### Abstract Types
 
-`PurchaseCustomerInfo`, `PurchaseEntitlementInfo`, `PurchaseOfferings`, `PurchaseOffering`, `PurchasePackage`, `PurchaseError`, `PurchaseStoreTransaction`
+All types are interfaces defined in `commonMain` — platform source sets provide implementations that wrap RevenueCat types on Android/iOS or return stub values elsewhere.
 
-## Platform Behavior
+| Type | Key Fields |
+|------|------------|
+| `PurchaseCustomerInfo` | `entitlements`, `activeSubscriptions`, `managementURL` |
+| `PurchaseOfferings` | `current`, `all` |
+| `PurchaseOffering` | `identifier`, `availablePackages`, `monthly`, `annual` |
+| `PurchasePackage` | `localizedPriceString`, `hasFreeTrial`, `freeTrialDays`, `hasIntroductoryOffer`, `discountPercentage` |
+| `PurchaseError` | `message`, `code` (see `PurchaseErrorCode` constants) |
+| `PurchaseStoreTransaction` | `transactionIdentifier`, `productIdentifier`, `purchaseDate` |
 
-| Platform | Behavior |
-|----------|----------|
-| **Android/iOS** | Full RevenueCat functionality |
-| **JVM/JS/WASM** | No-op implementations (compiles but returns errors/false) |
+### Dependency Injection
 
-## RevenueCat Setup
+Each platform provides a Koin module via `expect/actual`:
 
-This module requires RevenueCat to be properly configured for Android and iOS.
-Refer to the [official RevenueCat KMP documentation](https://www.revenuecat.com/docs/getting-started/installation/kotlin-multiplatform) for:
+```kotlin
+// commonMain
+expect val platformPurchaseModule: Module
 
-1. **Account Setup**: Create a RevenueCat account and project
-2. **Product Configuration**: Set up products and offerings in the RevenueCat dashboard
-3. **Native SDK Integration**: Link the native iOS SDK (PurchasesHybridCommon) via Swift Package Manager or CocoaPods
-4. **Android Configuration**: Ensure proper `launchMode` settings in AndroidManifest.xml
-
-The module handles the Kotlin Multiplatform integration, but you still need to complete the platform-specific RevenueCat setup.
+// androidMain / iosMain / jvmMain / webMain / macosMain
+actual val platformPurchaseModule: Module = module { ... }
+```
 
 ## Architecture
 
 ```
 purchases/src/
-├── commonMain/     # PurchaseHelper interface, PurchaseTypes, PurchaseStateManager
-├── androidMain/    # Android RevenueCat implementation
-├── iosMain/        # iOS RevenueCat implementation
-└── jvmMain/        # JVM no-op implementation
+├── commonMain/     # Interfaces: PurchaseHelper, PurchaseTypes, PurchaseStateManager, NetworkConnectivity
+├── androidMain/    # RevenueCat Android implementation + PaywallListener + CustomerCenterListener
+├── iosMain/        # RevenueCat iOS implementation + PaywallListener
+├── jvmMain/        # No-op implementation
+├── webMain/        # No-op implementation (shared by JS + WasmJS)
+└── macosMain/      # No-op implementation
 ```
+
+## Build Configuration
+
+RevenueCat is excluded from unsupported platform configurations via `afterEvaluate` in `build.gradle.kts`. Amazon Appstore SDK is also excluded globally (Google Play only).
+
+## RevenueCat Setup
+
+This module handles the KMP integration, but you still need platform-specific RevenueCat setup. Refer to the [official RevenueCat KMP documentation](https://www.revenuecat.com/docs/getting-started/installation/kotlin-multiplatform) for account setup, product configuration, and native SDK integration.
 
 ## License
 
-This module is **free to use, copy, or fork** by anyone. It's a helper library designed to work with RevenueCat's Kotlin Multiplatform SDK and provides no additional charges or fees beyond what RevenueCat itself may charge for their service.
+Free to use, copy, or fork. This is a helper library for RevenueCat's KMP SDK — no additional charges beyond RevenueCat's own pricing.
