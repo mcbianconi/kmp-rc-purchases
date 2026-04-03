@@ -1,5 +1,6 @@
 package com.mcbianconi.tattoo.purchases
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -17,6 +18,8 @@ import com.revenuecat.purchases.kmp.ui.revenuecatui.PaywallOptions
 import com.revenuecat.purchases.ui.revenuecatui.customercenter.CustomerCenterOptions
 import org.koin.mp.KoinPlatform.getKoin
 import com.revenuecat.purchases.Purchases as NativePurchases
+
+private val logger = KotlinLogging.logger {}
 
 class AndroidPurchaseHelper : PurchaseHelper {
 
@@ -64,18 +67,18 @@ class AndroidPurchaseHelper : PurchaseHelper {
         onError: (PurchaseError) -> Unit
     ) {
         if (!isInitialized) {
-            println("PurchaseHelper: Not initialized, cannot fetch offerings")
+            logger.warn { "PurchaseHelper: Not initialized, cannot fetch offerings" }
             onError(NotInitializedError())
             return
         }
 
         Purchases.sharedInstance.getOfferings(
             onError = { error ->
-                println("PurchaseHelper: Failed to fetch offerings: ${error.message}")
+                logger.warn { "PurchaseHelper: Failed to fetch offerings: ${error.message}" }
                 onError(AndroidPurchaseError(error))
             },
             onSuccess = { offerings ->
-                println("PurchaseHelper: Fetched offerings successfully")
+                logger.debug { "PurchaseHelper: Fetched offerings successfully" }
                 onSuccess(AndroidPurchaseOfferings(offerings))
             }
         )
@@ -87,7 +90,7 @@ class AndroidPurchaseHelper : PurchaseHelper {
         onError: (PurchaseError, Boolean) -> Unit
     ) {
         if (!isInitialized) {
-            println("PurchaseHelper: Not initialized, cannot make purchase")
+            logger.warn { "PurchaseHelper: Not initialized, cannot make purchase" }
             onError(NotInitializedError(), false)
             return
         }
@@ -96,14 +99,14 @@ class AndroidPurchaseHelper : PurchaseHelper {
             packageToPurchase = (packageToPurchase as AndroidPurchasePackage).delegate,
             onError = { error, userCancelled ->
                 if (userCancelled) {
-                    println("PurchaseHelper: Purchase cancelled by user")
+                    logger.info { "PurchaseHelper: Purchase cancelled by user" }
                 } else {
-                    println("PurchaseHelper: Purchase failed: ${error.message}")
+                    logger.warn { "PurchaseHelper: Purchase failed: ${error.message}" }
                 }
                 onError(AndroidPurchaseError(error), userCancelled)
             },
             onSuccess = { storeTransaction, customerInfo ->
-                println("PurchaseHelper: Purchase successful; trying to convert to generic transaction")
+                logger.info { "PurchaseHelper: Purchase successful; trying to convert to generic transaction" }
                 onSuccess(
                     AndroidPurchaseStoreTransaction(
                         delegate = Transaction(
@@ -123,14 +126,14 @@ class AndroidPurchaseHelper : PurchaseHelper {
         onError: (PurchaseError) -> Unit
     ) {
         if (!isInitialized) {
-            println("PurchaseHelper: Not initialized, cannot restore purchases")
+            logger.warn { "PurchaseHelper: Not initialized, cannot restore purchases" }
             onError(NotInitializedError())
             return
         }
 
         Purchases.sharedInstance.restorePurchases(
             onError = { error ->
-                println("PurchaseHelper: Failed to restore purchases: ${error.message}")
+                logger.warn { "PurchaseHelper: Failed to restore purchases: ${error.message}" }
                 onError(AndroidPurchaseError(error))
             },
             onSuccess = { customerInfo ->
@@ -145,7 +148,7 @@ class AndroidPurchaseHelper : PurchaseHelper {
         onError: (PurchaseError) -> Unit
     ) {
         if (!isInitialized) {
-            println("PurchaseHelper: Not initialized, cannot get customer info")
+            logger.warn { "PurchaseHelper: Not initialized, cannot get customer info" }
             onError(NotInitializedError())
             return
         }
@@ -159,11 +162,11 @@ class AndroidPurchaseHelper : PurchaseHelper {
         Purchases.sharedInstance.getCustomerInfo(
             fetchPolicy = fetchPolicy,
             onError = { error ->
-                println("PurchaseHelper: Failed to get customer info: ${error.message}")
+                logger.warn { "PurchaseHelper: Failed to get customer info: ${error.message}" }
                 onError(AndroidPurchaseError(error))
             },
             onSuccess = { customerInfo ->
-                println("PurchaseHelper: Got customer info successfully (forceRefresh=$forceRefresh)")
+                logger.debug { "PurchaseHelper: Got customer info successfully (forceRefresh=$forceRefresh)" }
                 onSuccess(AndroidPurchaseCustomerInfo(customerInfo))
             }
         )
@@ -171,7 +174,7 @@ class AndroidPurchaseHelper : PurchaseHelper {
 
     override suspend fun hasActiveEntitlement(entitlementIdentifier: String): Boolean {
         if (!isInitialized) {
-            println("PurchaseHelper: Not initialized, cannot check entitlement")
+            logger.warn { "PurchaseHelper: Not initialized, cannot check entitlement" }
             return false
         }
 
@@ -179,12 +182,12 @@ class AndroidPurchaseHelper : PurchaseHelper {
 
         Purchases.sharedInstance.getCustomerInfo(
             onError = { error ->
-                println("PurchaseHelper: Failed to check entitlement: ${error.message}")
+                logger.warn { "PurchaseHelper: Failed to check entitlement: ${error.message}" }
             },
             onSuccess = { customerInfo ->
                 val wrapped = AndroidPurchaseCustomerInfo(customerInfo)
                 hasEntitlement = wrapped.entitlements[entitlementIdentifier]?.isActive == true
-                println("PurchaseHelper: Entitlement '$entitlementIdentifier' active: $hasEntitlement")
+                logger.debug { "PurchaseHelper: Entitlement '$entitlementIdentifier' active: $hasEntitlement" }
             }
         )
 
@@ -193,22 +196,22 @@ class AndroidPurchaseHelper : PurchaseHelper {
 
     override fun setPreferredLocale(locale: String) {
         if (!isInitialized) {
-            println("PurchaseHelper: Not initialized, cannot set preferred locale")
+            logger.warn { "PurchaseHelper: Not initialized, cannot set preferred locale" }
             return
         }
         NativePurchases.sharedInstance.overridePreferredUILocale(locale)
-        println("PurchaseHelper: Set preferred locale to $locale")
+        logger.debug { "PurchaseHelper: Set preferred locale to $locale" }
     }
 
     override fun setFirebaseAppInstanceId(firebaseAppInstanceId: String) {
         if (!isInitialized) {
-            println("PurchaseHelper: Not initialized, cannot set Firebase App Instance ID")
+            logger.warn { "PurchaseHelper: Not initialized, cannot set Firebase App Instance ID" }
             return
         }
         Purchases.sharedInstance.setAttributes(
             mapOf($$"$firebaseAppInstanceId" to firebaseAppInstanceId)
         )
-        println("PurchaseHelper: Set Firebase App Instance ID")
+        logger.debug { "PurchaseHelper: Set Firebase App Instance ID" }
     }
 
     @Composable
@@ -216,7 +219,7 @@ class AndroidPurchaseHelper : PurchaseHelper {
         // Check if SDK is initialized before showing Paywall
         // Prevents crash on devices without Google Play Services
         if (!isInitialized) {
-            println("PurchaseHelper: Not initialized, cannot show Paywall")
+            logger.warn { "PurchaseHelper: Not initialized, cannot show Paywall" }
             LaunchedEffect(Unit) { dismissRequest() }
             return
         }
@@ -260,7 +263,7 @@ class AndroidPurchaseHelper : PurchaseHelper {
         // Check if SDK is initialized before showing CustomerCenter
         // RevenueCat's CustomerCenter internally accesses Purchases.sharedInstance
         if (!isInitialized) {
-            println("PurchaseHelper: Not initialized, cannot show CustomerCenter")
+            logger.warn { "PurchaseHelper: Not initialized, cannot show CustomerCenter" }
             LaunchedEffect(Unit) { dismissRequest() }
             return
         }
@@ -274,7 +277,7 @@ class AndroidPurchaseHelper : PurchaseHelper {
                 true
             } catch (e: Exception) {
                 // Catches UninitializedPropertyAccessException, IllegalStateException, etc.
-                println("PurchaseHelper: Native SDK not ready (${e.javaClass.simpleName}), cannot show CustomerCenter")
+                logger.warn { "PurchaseHelper: Native SDK not ready (${e.javaClass.simpleName}), cannot show CustomerCenter" }
                 false
             }
         }

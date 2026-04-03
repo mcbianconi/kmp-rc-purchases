@@ -1,11 +1,14 @@
 package com.mcbianconi.tattoo.purchases
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import com.revenuecat.purchases.CustomerInfo
 import com.revenuecat.purchases.PurchasesError
 import com.revenuecat.purchases.customercenter.CustomerCenterListener
 import com.revenuecat.purchases.customercenter.CustomerCenterManagementOption
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+
+private val logger = KotlinLogging.logger {}
 
 class CustomerCenterListenerImpl(
     private val scope: CoroutineScope,
@@ -29,7 +32,7 @@ class CustomerCenterListenerImpl(
     }
 
     override fun onRestoreStarted() {
-        println("CustomerCenter: Restore started")
+        logger.info { "CustomerCenter: Restore started" }
         purchaseStateManager.emitEvent(PurchaseEvent.CustomerCenter.RestoreStarted)
     }
 
@@ -41,19 +44,19 @@ class CustomerCenterListenerImpl(
     }
 
     override fun onRestoreFailed(error: PurchasesError) {
-        println("CustomerCenter: Restore failed - ${error.message}")
+        logger.warn { "CustomerCenter: Restore failed - ${error.message}" }
         purchaseStateManager.emitEvent(
             PurchaseEvent.CustomerCenter.RestoreFailed(error.message)
         )
     }
 
     override fun onShowingManageSubscriptions() {
-        println("CustomerCenter: Showing manage subscriptions")
+        logger.info { "CustomerCenter: Showing manage subscriptions" }
         purchaseStateManager.emitEvent(PurchaseEvent.CustomerCenter.ManageSubscriptionsShown)
     }
 
     override fun onFeedbackSurveyCompleted(feedbackSurveyOptionId: String) {
-        println("CustomerCenter: Feedback survey completed")
+        logger.info { "CustomerCenter: Feedback survey completed" }
         purchaseStateManager.emitEvent(
             PurchaseEvent.CustomerCenter.FeedbackSurveyCompleted(feedbackSurveyOptionId)
         )

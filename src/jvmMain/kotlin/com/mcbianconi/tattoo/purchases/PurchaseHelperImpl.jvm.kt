@@ -1,5 +1,6 @@
 package com.mcbianconi.tattoo.purchases
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
@@ -7,6 +8,8 @@ import androidx.compose.ui.Modifier
  * JVM implementation of PurchaseHelper that grants pro access by default.
  * Purchases are not supported on desktop JVM, but we auto-grant pro for development.
  */
+private val logger = KotlinLogging.logger {}
+
 class JVMPurchaseHelper : PurchaseHelper {
 
     private val proCustomerInfo = PurchaseCustomerInfoWrapper()
@@ -25,7 +28,7 @@ class JVMPurchaseHelper : PurchaseHelper {
         onSuccess: (PurchaseOfferings) -> Unit,
         onError: (PurchaseError) -> Unit
     ) {
-        println("PurchaseHelper: JVM platform - getOfferings not supported (pro already granted)")
+        logger.debug { "PurchaseHelper: JVM platform - getOfferings not supported (pro already granted)" }
         onError(StubPurchaseError())
     }
 
@@ -34,7 +37,7 @@ class JVMPurchaseHelper : PurchaseHelper {
         onSuccess: (PurchaseStoreTransaction, PurchaseCustomerInfo) -> Unit,
         onError: (PurchaseError, Boolean) -> Unit
     ) {
-        println("PurchaseHelper: JVM platform - purchase not needed (pro already granted)")
+        logger.debug { "PurchaseHelper: JVM platform - purchase not needed (pro already granted)" }
         // Auto-complete purchase since pro is granted
         onSuccess(StubPurchaseStoreTransaction(), proCustomerInfo)
     }
@@ -43,7 +46,7 @@ class JVMPurchaseHelper : PurchaseHelper {
         onSuccess: (PurchaseCustomerInfo) -> Unit,
         onError: (PurchaseError) -> Unit
     ) {
-        println("PurchaseHelper: JVM platform - restore returning pro access")
+        logger.debug { "PurchaseHelper: JVM platform - restore returning pro access" }
         onSuccess(proCustomerInfo)
     }
 
@@ -52,26 +55,26 @@ class JVMPurchaseHelper : PurchaseHelper {
         onSuccess: (PurchaseCustomerInfo) -> Unit,
         onError: (PurchaseError) -> Unit
     ) {
-        println("PurchaseHelper: JVM platform - returning pro customer info (forceRefresh=$forceRefresh)")
+        logger.debug { "PurchaseHelper: JVM platform - returning pro customer info (forceRefresh=$forceRefresh)" }
         onSuccess(proCustomerInfo)
     }
 
     override suspend fun hasActiveEntitlement(entitlementIdentifier: String): Boolean {
-        println("PurchaseHelper: JVM platform - hasActiveEntitlement returning true (pro granted)")
+        logger.debug { "PurchaseHelper: JVM platform - hasActiveEntitlement returning true (pro granted)" }
         return true
     }
 
     override fun setPreferredLocale(locale: String) {
-        println("PurchaseHelper: JVM platform - setPreferredLocale not supported")
+        logger.debug { "PurchaseHelper: JVM platform - setPreferredLocale not supported" }
     }
 
     override fun setFirebaseAppInstanceId(firebaseAppInstanceId: String) {
-        println("PurchaseHelper: JVM platform - setFirebaseAppInstanceId not supported")
+        logger.debug { "PurchaseHelper: JVM platform - setFirebaseAppInstanceId not supported" }
     }
 
     @Composable
     override fun Paywall(offeringIdentifier: String?, source: String, dismissRequest: () -> Unit) {
-        println("PurchaseHelper: JVM platform - Paywall not supported (source: $source, offering: $offeringIdentifier)")
+        logger.debug { "PurchaseHelper: JVM platform - Paywall not supported (source: $source, offering: $offeringIdentifier)" }
     }
 
     @Composable

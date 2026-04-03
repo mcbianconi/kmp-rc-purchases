@@ -20,6 +20,7 @@ class PaywallListenerImpl(
     ) {
         val wrappedInfo = PurchaseCustomerInfoWrapper(customerInfo)
         purchaseStateManager.updateFromCustomerInfo(wrappedInfo)
+        // TODO remover valor hardcoded
         val productIdentifier = storeTransaction.productIds.firstOrNull() ?: "unknown_id"
         purchaseStateManager.emitEvent(PurchaseEvent.PurchaseSuccess(productIdentifier))
     }

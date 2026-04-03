@@ -99,6 +99,7 @@ internal class PurchasePackageWrapper(val delegate: Package) : PurchasePackage {
     }
 
     override val freeTrialDays: Int? = freePhase?.billingPeriod?.let { period ->
+        // TODO refatorar isso pra ser um when exaustivo com enum
         when (period.unit.name.uppercase()) {
             "DAY" -> period.value
             "WEEK" -> period.value * 7
@@ -115,6 +116,7 @@ internal class PurchasePackageWrapper(val delegate: Package) : PurchasePackage {
 
     // Intro phase: first phase that is FINITE_RECURRING with a non-zero price (not free trial)
     private val introPhase = pricingPhases.firstOrNull { phase ->
+        // TODO fazer um check com enum, ao invés de string
         phase.recurrenceMode.name == "FINITE_RECURRING" && phase.price.amountMicros > 0
     }
 

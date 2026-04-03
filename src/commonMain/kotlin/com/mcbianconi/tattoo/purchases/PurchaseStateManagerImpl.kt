@@ -1,5 +1,6 @@
 package com.mcbianconi.tattoo.purchases
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,6 +44,8 @@ sealed interface ManagementOption {
     ): ManagementOption
 }
 
+private val logger = KotlinLogging.logger {}
+
 class PurchaseStateManagerImpl(
     private val purchaseHelper: PurchaseHelper,
     private val scope: CoroutineScope,
@@ -61,7 +64,7 @@ class PurchaseStateManagerImpl(
                 updateFromCustomerInfo(customerInfo)
             },
             onError = { error ->
-                println("PurchaseStateManager: Failed to refresh state: ${error.message}")
+                logger.warn { "PurchaseStateManager: Failed to refresh state: ${error.message}" }
             }
         )
     }
@@ -69,7 +72,7 @@ class PurchaseStateManagerImpl(
     override fun updateFromCustomerInfo(customerInfo: PurchaseCustomerInfo) {
         val isActive = customerInfo.entitlements[entitlementId]?.isActive == true
         _isPro.value = isActive
-        println("PurchaseStateManager: Updated isPro to $isActive")
+        logger.info { "PurchaseStateManager: Updated isPro to $isActive" }
     }
 
     override fun emitEvent(event: PurchaseEvent) {
@@ -84,6 +87,6 @@ class PurchaseStateManagerImpl(
      */
     override fun toggleProStatusForDevelopment() {
         _isPro.value = !_isPro.value
-        println("PurchaseStateManager: DEV - Toggled isPro to ${_isPro.value}")
+        logger.debug { "PurchaseStateManager: DEV - Toggled isPro to ${_isPro.value}" }
     }
 }

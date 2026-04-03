@@ -73,6 +73,9 @@ kotlin {
                 implementation(compose.runtime)
                 implementation(compose.ui)
 
+                // Logging
+                implementation(libs.kotlin.logging)
+
                 // Koin
                 implementation(libs.koin.core)
 

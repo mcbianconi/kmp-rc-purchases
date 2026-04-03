@@ -44,6 +44,7 @@ private class ProEntitlementMap : Map<String, PurchaseEntitlementInfo> {
 }
 
 class ProPurchaseEntitlementInfo : PurchaseEntitlementInfo {
+    // TODO why desktop_pro?
     override val identifier: String = "desktop_pro"
     override val isActive: Boolean = true
 }
@@ -72,6 +73,7 @@ class StubPurchasePackage : PurchasePackage {
     // Stub price information (desktop users always have Pro)
     override val localizedPriceString: String = "$0.00"
     override val localizedPricePerMonth: String? = null
+    // TODO hardcoded currency
     override val currencyCode: String = "USD"
     override val priceAmountMicros: Long = 0L
 

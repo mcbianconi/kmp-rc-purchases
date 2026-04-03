@@ -1,5 +1,6 @@
 package com.mcbianconi.tattoo.purchases
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -15,6 +16,8 @@ import com.revenuecat.purchases.kmp.models.Transaction
 import com.revenuecat.purchases.kmp.ui.revenuecatui.PaywallListener
 import com.revenuecat.purchases.kmp.ui.revenuecatui.PaywallOptions
 import org.koin.mp.KoinPlatform.getKoin
+
+private val logger = KotlinLogging.logger {}
 
 class IOSPurchaseHelper : PurchaseHelper {
 
@@ -64,18 +67,18 @@ class IOSPurchaseHelper : PurchaseHelper {
         onError: (PurchaseError) -> Unit
     ) {
         if (!isInitialized) {
-            println("PurchaseHelper: Not initialized, cannot fetch offerings")
+            logger.warn { "PurchaseHelper: Not initialized, cannot fetch offerings" }
             onError(NotInitializedError())
             return
         }
 
         Purchases.sharedInstance.getOfferings(
             onError = { error ->
-                println("PurchaseHelper: Failed to fetch offerings: ${error.message}")
+                logger.warn { "PurchaseHelper: Failed to fetch offerings: ${error.message}" }
                 onError(PurchaseErrorWrapper(error))
             },
             onSuccess = { offerings ->
-                println("PurchaseHelper: Fetched offerings successfully")
+                logger.debug { "PurchaseHelper: Fetched offerings successfully" }
                 onSuccess(PurchaseOfferingsWrapper(offerings))
             }
         )
@@ -87,7 +90,7 @@ class IOSPurchaseHelper : PurchaseHelper {
         onError: (PurchaseError, Boolean) -> Unit
     ) {
         if (!isInitialized) {
-            println("PurchaseHelper: Not initialized, cannot make purchase")
+            logger.warn { "PurchaseHelper: Not initialized, cannot make purchase" }
             onError(NotInitializedError(), false)
             return
         }
@@ -96,14 +99,14 @@ class IOSPurchaseHelper : PurchaseHelper {
             packageToPurchase = (packageToPurchase as PurchasePackageWrapper).delegate,
             onError = { error, userCancelled ->
                 if (userCancelled) {
-                    println("PurchaseHelper: Purchase cancelled by user")
+                    logger.info { "PurchaseHelper: Purchase cancelled by user" }
                 } else {
-                    println("PurchaseHelper: Purchase failed: ${error.message}")
+                    logger.warn { "PurchaseHelper: Purchase failed: ${error.message}" }
                 }
                 onError(PurchaseErrorWrapper(error), userCancelled)
             },
             onSuccess = { storeTransaction, customerInfo ->
-                println("PurchaseHelper: Purchase successful")
+                logger.info { "PurchaseHelper: Purchase successful" }
                 val transaction = Transaction(
                     transactionIdentifier = storeTransaction.transactionId ?: "",
                     productIdentifier = storeTransaction.productIds.first(),
@@ -122,14 +125,14 @@ class IOSPurchaseHelper : PurchaseHelper {
         onError: (PurchaseError) -> Unit
     ) {
         if (!isInitialized) {
-            println("PurchaseHelper: Not initialized, cannot restore purchases")
+            logger.warn { "PurchaseHelper: Not initialized, cannot restore purchases" }
             onError(NotInitializedError())
             return
         }
 
         Purchases.sharedInstance.restorePurchases(
             onError = { error ->
-                println("PurchaseHelper: Failed to restore purchases: ${error.message}")
+                logger.warn { "PurchaseHelper: Failed to restore purchases: ${error.message}" }
                 onError(PurchaseErrorWrapper(error))
             },
             onSuccess = { customerInfo ->
@@ -144,7 +147,7 @@ class IOSPurchaseHelper : PurchaseHelper {
         onError: (PurchaseError) -> Unit
     ) {
         if (!isInitialized) {
-            println("PurchaseHelper: Not initialized, cannot get customer info")
+            logger.warn { "PurchaseHelper: Not initialized, cannot get customer info" }
             onError(NotInitializedError())
             return
         }
@@ -158,11 +161,11 @@ class IOSPurchaseHelper : PurchaseHelper {
         Purchases.sharedInstance.getCustomerInfo(
             fetchPolicy = fetchPolicy,
             onError = { error ->
-                println("PurchaseHelper: Failed to get customer info: ${error.message}")
+                logger.warn { "PurchaseHelper: Failed to get customer info: ${error.message}" }
                 onError(PurchaseErrorWrapper(error))
             },
             onSuccess = { customerInfo ->
-                println("PurchaseHelper: Got customer info successfully (forceRefresh=$forceRefresh)")
+                logger.debug { "PurchaseHelper: Got customer info successfully (forceRefresh=$forceRefresh)" }
                 onSuccess(PurchaseCustomerInfoWrapper(customerInfo))
             }
         )
@@ -170,7 +173,7 @@ class IOSPurchaseHelper : PurchaseHelper {
 
     override suspend fun hasActiveEntitlement(entitlementIdentifier: String): Boolean {
         if (!isInitialized) {
-            println("PurchaseHelper: Not initialized, cannot check entitlement")
+            logger.warn { "PurchaseHelper: Not initialized, cannot check entitlement" }
             return false
         }
 
@@ -178,12 +181,12 @@ class IOSPurchaseHelper : PurchaseHelper {
 
         Purchases.sharedInstance.getCustomerInfo(
             onError = { error ->
-                println("PurchaseHelper: Failed to check entitlement: ${error.message}")
+                logger.warn { "PurchaseHelper: Failed to check entitlement: ${error.message}" }
             },
             onSuccess = { customerInfo ->
                 val wrapped = PurchaseCustomerInfoWrapper(customerInfo)
                 hasEntitlement = wrapped.entitlements[entitlementIdentifier]?.isActive == true
-                println("PurchaseHelper: Entitlement '$entitlementIdentifier' active: $hasEntitlement")
+                logger.debug { "PurchaseHelper: Entitlement '$entitlementIdentifier' active: $hasEntitlement" }
             }
         )
 
@@ -192,32 +195,32 @@ class IOSPurchaseHelper : PurchaseHelper {
 
     override fun setPreferredLocale(locale: String) {
         if (!isInitialized) {
-            println("PurchaseHelper: Not initialized, cannot set preferred locale")
+            logger.warn { "PurchaseHelper: Not initialized, cannot set preferred locale" }
             return
         }
         // Note: The RevenueCat KMP SDK doesn't expose overridePreferredUILocale for iOS yet.
         // The native iOS SDK supports this feature, but it's not wrapped in the KMP SDK.
         // When the KMP SDK adds support, this can be updated.
         // For now, the paywall will use the device's system locale on iOS.
-        println("PurchaseHelper: setPreferredLocale($locale) - Not yet supported in KMP SDK for iOS")
+        logger.debug { "PurchaseHelper: setPreferredLocale($locale) - Not yet supported in KMP SDK for iOS" }
     }
 
     override fun setFirebaseAppInstanceId(firebaseAppInstanceId: String) {
         if (!isInitialized) {
-            println("PurchaseHelper: Not initialized, cannot set Firebase App Instance ID")
+            logger.warn { "PurchaseHelper: Not initialized, cannot set Firebase App Instance ID" }
             return
         }
         Purchases.sharedInstance.setAttributes(
             mapOf($$"$firebaseAppInstanceId" to firebaseAppInstanceId)
         )
-        println("PurchaseHelper: Set Firebase App Instance ID")
+        logger.debug { "PurchaseHelper: Set Firebase App Instance ID" }
     }
 
     @Composable
     override fun Paywall(offeringIdentifier: String?, source: String, dismissRequest: () -> Unit) {
         // Check if SDK is initialized before showing Paywall
         if (!isInitialized) {
-            println("PurchaseHelper: Not initialized, cannot show Paywall")
+            logger.warn { "PurchaseHelper: Not initialized, cannot show Paywall" }
             LaunchedEffect(Unit) { dismissRequest() }
             return
         }
@@ -277,7 +280,7 @@ class IOSPurchaseHelper : PurchaseHelper {
         // Check if SDK is initialized before showing CustomerCenter
         // RevenueCat's CustomerCenter internally accesses Purchases.sharedInstance
         if (!isInitialized) {
-            println("PurchaseHelper: Not initialized, cannot show CustomerCenter")
+            logger.warn { "PurchaseHelper: Not initialized, cannot show CustomerCenter" }
             LaunchedEffect(Unit) { dismissRequest() }
             return
         }

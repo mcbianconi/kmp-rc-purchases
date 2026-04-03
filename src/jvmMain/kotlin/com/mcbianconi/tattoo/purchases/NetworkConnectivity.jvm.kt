@@ -15,6 +15,7 @@ class JvmNetworkConnectivity : NetworkConnectivity {
         try {
             Socket().use { socket ->
                 // Try to connect to a known reliable server (Google DNS)
+                // TODO remove hardcoded value
                 socket.connect(InetSocketAddress("8.8.8.8", 53), TIMEOUT_MS)
                 true
             }
