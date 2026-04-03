@@ -42,4 +42,8 @@ actual val platformPurchaseModule: Module = module {
             purchaseStateManager = get()
         )
     }
+
+    single<PurchaseUI> {
+        AndroidPurchaseUI(get())
+    }
 }

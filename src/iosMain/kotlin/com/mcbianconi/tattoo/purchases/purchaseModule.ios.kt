@@ -32,4 +32,8 @@ actual val platformPurchaseModule: Module = module {
     single<PaywallListener> {
         PaywallListenerImpl(get())
     }
+
+    single<PurchaseUI> {
+        IosPurchaseUI(get())
+    }
 }

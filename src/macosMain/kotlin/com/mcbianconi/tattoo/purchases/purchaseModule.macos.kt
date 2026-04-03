@@ -28,4 +28,6 @@ actual val platformPurchaseModule: Module = module {
             entitlementId = "ignore"
         )
     }
+
+    single<PurchaseUI> { MacosPurchaseUI() }
 }
